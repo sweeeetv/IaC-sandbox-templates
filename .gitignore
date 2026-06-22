@@ -33,6 +33,8 @@ Thumbs.db
 
 
 # for GO 
+/server
+/server.exe
 *.exe
 *.exe~
 *.dll
