@@ -39,12 +39,12 @@ resource "aws_ecs_task_definition" "app" {
         }]
         environment = [
             {
-                name  = "DYNAMODB_TABLE_NAME"
+                name  = "DYNAMO_TABLE"
                 value = aws_dynamodb_table.urls.name
             },
             {
-                name  = "REDIS_ENDPOINT"
-                value = aws_elasticache_serverless_cache.redis.endpoint[0].address
+                name  = "REDIS_ADDR"
+                value = "${aws_elasticache_serverless_cache.redis.endpoint[0].address}:${aws_elasticache_serverless_cache.redis.endpoint[0].port}"
             }
         ]
         logConfiguration = { //send logs to cloudwatch for debugging.
