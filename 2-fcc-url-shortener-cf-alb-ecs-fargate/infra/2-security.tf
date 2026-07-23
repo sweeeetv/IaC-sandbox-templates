@@ -13,11 +13,14 @@ resource "aws_security_group" "alb" {
     tags = local.common_tags
     name = "${local.prefix}-alb-sg"
     ingress { //inbound traffics from the internet
-        from_port = 443
-        to_port = 443 // range from 443 to 443
+        from_port = 80
+        to_port = 80 // range from 443 to 443
         protocol = "tcp"
         prefix_list_ids = [data.aws_ec2_managed_prefix_list.cf-prefix.id] //ingress from cloudfront only.  
         # cidr_blocks = [data.aws_ec2_managed_prefix_list.cf-prefix.cidr_blocks[0]] //samilar effect.
+
+        # why http not https:
+        # getting a real ACM cert for HTTPS requires a custom domain, ALB's default DNS name (*.elb.amazonaws.com) — AWS doesn't issue public certs for this. no Route53/a custom domain, HTTPS ALB→Cf isn't available. The security model relies on: client↔Cf is HTTPS (real encryption, public-facing), and CF↔ALB is plaintext but confined to AWS's backbone nw and restricted to CF's IP range only via prefix-list SG rule — a standard, accepted patter..
     }
     egress {
         from_port = 8080
@@ -36,6 +39,15 @@ resource "aws_security_group" "alb" {
 # }
 
 #----------------- SG - ecs -------------------#
+
+# gateway endpoints do not have an ip 10.x, needs prefix list.
+data "aws_ec2_managed_prefix_list" "s3" { 
+  name = "com.amazonaws.ap-southeast-2.s3"
+}
+data "aws_ec2_managed_prefix_list" "dynamodb" {
+  name = "com.amazonaws.ap-southeast-2.dynamodb"
+}
+
 resource "aws_security_group" "ecs" {
     name = "${local.prefix}-ecs-sg"
     vpc_id = aws_vpc.main.id
@@ -71,7 +83,22 @@ resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
   ip_protocol        = "tcp"
   referenced_security_group_id = aws_security_group.alb.id
 }
-
+//pull the image from s3's gateway endpoint 
+resource "aws_vpc_security_group_egress_rule" "ecs_to_s3" { 
+  security_group_id = aws_security_group.ecs.id
+  from_port          = 443
+  to_port            = 443
+  ip_protocol        = "tcp"
+  prefix_list_id     = data.aws_ec2_managed_prefix_list.s3.id
+}
+//ecs to dynamodb:
+resource "aws_vpc_security_group_egress_rule" "ecs_to_dynamodb" {
+  security_group_id = aws_security_group.ecs.id
+  from_port          = 443
+  to_port            = 443
+  ip_protocol        = "tcp"
+  prefix_list_id     = data.aws_ec2_managed_prefix_list.dynamodb.id
+}
 
 
 

@@ -1,0 +1,52 @@
+
+# This Dockerfile is used to build and run a Go application in a lightweight Alpine Linux container.
+FROM golang:1.26-alpine AS build 
+
+# /app -> a directory inside the container image, not on the host machine. This is where the application code will be copied to and built.
+WORKDIR /app
+# The go.mod and go.sum files are copied first to leverage Docker's caching mechanism. This way, if the dependencies haven't changed, Docker can use the cached layer and skip downloading them again.
+COPY go.mod go.sum ./ 
+# The go mod download command is run to download the dependencies specified in the go.mod file. This ensures that all required packages are available for the build process.
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o server .
+
+FROM alpine:latest
+COPY --from=build /app/server /server
+EXPOSE 8080
+ENTRYPOINT ["/server"]
+
+
+
+
+#steps of deploying the docker image to AWS ECR:
+
+# 0. docker build -t url-shortener .
+
+# 1. docker login:
+# aws ecr get-login-password --region ap-southeast-2 \
+# | docker login \
+# --username AWS \
+# --password-stdin 193229476233.dkr.ecr.ap-southeast-2.amazonaws.com
+
+# 2. tag the image
+# docker tag \
+# url:latest \
+# 193229476233.dkr.ecr.ap-southeast-2.amazonaws.com/url-shortener-ecr:latest
+
+# 3. push to ECR
+# docker push 193229476233.dkr.ecr.ap-southeast-2.amazonaws.com/url-shortener-ecr:latest
+# !! check if the repository exists in ECR:
+# !! aws ecr describe-repositories --region ap-southeast-2
+# !! the repo's name should also be url-shortener-ecr as well!
+
+# 4a. quick deploy
+# aws ecs update-service --cluster <cluster-name> --service <service-name> --force-new-deployment
+# so -> aws ecs update-service --cluster url-shortener-ecs-cluster --service url-shortener-ecs-service --force-new-deployment
+
+
+# 5. debuging 
+# aws ecs describe-services \
+# --cluster url-shortener-ecs-cluster \
+# --services url-shortener-ecs-service \
+# --query "services[0].events[:10]"

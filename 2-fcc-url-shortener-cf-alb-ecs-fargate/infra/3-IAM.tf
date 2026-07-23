@@ -2,23 +2,34 @@
 #--------- ecs pull from ecr, write to cloudwatch -----------#
 //Role: just an container with a trust policy, tells 'who can assume this role'- "the ECS service is allowed to assume this role"
 resource "aws_iam_role" "ecs_execution_role" {
-    name = "${local.prefix}-ecs-task-excution-role"
+    name = "${local.prefix}-ecs-task-execution-role"
     //trust Policy (Who can assume the role)
     assume_role_policy = jsonencode({ //translate tf language into JSON
         Version = "2012-10-17"
         Statement = [
-            {   Action = "sts:AssumeRole" //the actual permission being granted: allowed to assume this role
+            //sts -> security token service
+            {   Action = "sts:AssumeRole" //principal allowed to assume this role
+
                 Effect = "Allow"
                 Sid = ""
-                Principal = {
+                Principal = { // can be a service, or federated, aws account
                     Service = "ecs-tasks.amazonaws.com" //ecs service
                 }
             }]
     })
     tags = local.common_tags
 }
+
+
+
+# A role contains permissions like: can read ecr; can write cloudwatch logs, can access dynamodb; etc
+# policy -> rules (permissions)
+# role -> an identity that carries one or more policies
+
+
 #attach AWS managed policy, covers ecr pull
-#CloudWatch Logs write access is granted by this code as well, just invisibly, bundled inside that one managed policy attachment.
+# CloudWatch Logs write access is granted by this code as well, just invisibly, bundled inside that one managed policy attachment.
+
 resource "aws_iam_role_policy_attachment" "ecs_excution" {
   role       = aws_iam_role.ecs_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
@@ -37,7 +48,7 @@ resource "aws_iam_role" "ecs_task" {
             {
                 Action = "sts:AssumeRole"
                 Effect = "Allow"
-                Principal = {
+                Principal = { //an identity, who wants the permission
                     Service = "ecs-tasks.amazonaws.com" //ecs
                 }
             }]
