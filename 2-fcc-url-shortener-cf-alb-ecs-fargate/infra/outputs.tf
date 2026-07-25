@@ -24,3 +24,5 @@ output "redis_endpoint" {
 output "ecs_cluster_name" {
   value = aws_ecs_cluster.app.name
 } //saves a console lookup when running [ aws ecs update-service ] to force a redeploy after pushing a new image.
+
+//

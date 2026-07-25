@@ -46,6 +46,9 @@ ENTRYPOINT ["/server"]
 
 
 # 5. debuging 
+# a. check the actual tasks:
+# aws ecs list-tasks --cluster url-shortener-ecs-cluster
+# b. if empty, check the events for errors:
 # aws ecs describe-services \
 # --cluster url-shortener-ecs-cluster \
 # --services url-shortener-ecs-service \

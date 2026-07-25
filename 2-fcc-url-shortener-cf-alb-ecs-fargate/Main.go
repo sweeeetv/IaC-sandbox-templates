@@ -20,7 +20,29 @@ import (
 	//webhttp 'web/http'
 )
 
+// CORS middleware to handle preflight requests and set appropriate headers, since cloudfront does not support OPTIONS method
+//next means the next handler in the chain, which will be called if the request is not an OPTIONS request.
+func corsMiddleware(next http.Handler) http.Handler { //corsMiddleware(http.DefaultServeMux) -> this means that the middleware will wrap the default HTTP request multiplexer (ServeMux), which is the default router in Go's net/http package. The ServeMux is responsible for routing incoming HTTP requests to the appropriate handler based on the request's URL path.
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//Every request enters here first.
+		//although these headers only needed for preflight, but it is harmless to set them on all the replies.
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		//this runs only if its OPTIONS
+		if r.Method == http.MethodOptions { //this checks if the incoming request is an OPTIONS request,  a preflight request sent by browsers to determine if the actual request is safe to send. If it is an OPTIONS request, the middleware responds with a 204 No Content status and does not call the next handler in the chain.
+			w.WriteHeader(http.StatusNoContent)
+			return // If it's OPTIONS: middleware writes 204 No Content immediately and returns — it never calls next.ServeHTTP(w, r)
+		}
+
+		//this runs if its not OPTIONS
+		next.ServeHTTP(w, r) //this  calls the next handler in the chain - the actual request handler (e.g., RedirectHandler or ShortenerHandler). It passes the ResponseWriter and Request to that handler, allowing it to process the request and generate a response.
+	})
+}
+
 func main() {
+
 	ctx := context.Background() //this is a root context, which is never canceled, has no values, and has no deadline. It is typically used by the main function, initialization, and tests, and as the top-level Context for incoming requests.
 
 	cfg, err := config.LoadDefaultConfig(ctx) // builds an AWS config object (region, credentials, retry settings)
@@ -39,6 +61,7 @@ func main() {
 	s := store.New(dynamoClient, tableName, rdb)
 	h := handler.New(s)
 
+//underneath: http.DefaultServeMux.HandleFunc(...), using default mux
 	http.HandleFunc("/api/shorturl/", h.RedirectHandler)
 	http.HandleFunc("/api/shorturl", h.ShortenerHandler)
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +70,9 @@ func main() {
 	})
 
 	log.Println("listening on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	//http.ListenAndServe(address, handler)
+	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(http.DefaultServeMux)))
+	//http.ListenAndServe(":8080", nil) -> just use http.DefaultServeMux, no middleware wrapper.
 }
 
 
@@ -73,8 +98,8 @@ func main() {
 
 
 //test:
-//curl -X POST https://d15208emiohrpu.cloudfront.net/api/shorturl -d '{"url":"https://google.com"}'
-//curl -L localhost:8080/api/shorturl/<code>
+//curl -X POST https://d1mko2gkzv7pil.cloudfront.net/api/shorturl -d '{"url":"https://google.com"}'
+//curl -L https://d1mko2gkzv7pil.cloudfront.net/api/shorturl/8LwzYB
 
 
 
