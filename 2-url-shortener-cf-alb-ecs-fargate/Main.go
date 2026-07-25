@@ -82,6 +82,15 @@ func main() {
 
 
 
+//for form submissions
+//test with:
+
+//curl -i \
+// -X POST \
+// https://d1cdqugb3nf78k.cloudfront.net/api/shorturl \
+// -H "Content-Type: application/x-www-form-urlencoded" \
+// -d "url=https://google.com"
+
 
 
 
@@ -98,8 +107,8 @@ func main() {
 
 
 //test:
-//curl -X POST https://d1mko2gkzv7pil.cloudfront.net/api/shorturl -d '{"url":"https://google.com"}'
-//curl -L https://d1mko2gkzv7pil.cloudfront.net/api/shorturl/8LwzYB
+//curl -X POST https://d1cdqugb3nf78k.cloudfront.net/api/shorturl -d '{"url":"https://google.com"}'
+//curl -L https://d1cdqugb3nf78k.cloudfront.net/api/shorturl/vbxy6l
 
 
 

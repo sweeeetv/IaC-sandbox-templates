@@ -27,3 +27,7 @@ provider "aws" {
     alias = "us_east_1"
     region = "us-east-1"
 }
+
+//------------------ ----------------------//
+# 1. break the least of the tf files' blob.
+# az storage blob lease break --account-name tfstatepersonalxgao --container-name tfstate --blob-name temp-url-shortener --auth-mode login

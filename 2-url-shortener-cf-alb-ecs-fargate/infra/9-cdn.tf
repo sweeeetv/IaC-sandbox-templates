@@ -92,12 +92,16 @@ resource "aws_cloudfront_distribution" "api_cdn" {
     # Attach the No-Cache policy
     cache_policy_id = data.aws_cloudfront_cache_policy.no_cache.id
 
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.cors_policy.id # Attach the CORS policy
+
+
+
     # add the origin request 
     # no caching, no need to forward headers to backend, this is the default behavior.
     # if caching is enable then this is not needed.
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
   }
-
+    #cors: 
 
   restrictions {
     geo_restriction {
@@ -107,5 +111,35 @@ resource "aws_cloudfront_distribution" "api_cdn" {
 
   viewer_certificate {
     cloudfront_default_certificate = true # Use standard AWS *.cloudfront.net cert
+  }
+}
+
+
+
+#------------------- cors --------------------------#
+
+resource "aws_cloudfront_response_headers_policy" "cors_policy" {
+  name = "url-shortener-cors"
+
+  cors_config {
+    access_control_allow_credentials = false //true: allow cookies, false: no cookies
+
+    access_control_allow_headers {
+      items = ["*"] //or specify headers like ["Content-Type", "Authorization"]
+    }
+
+    access_control_allow_methods {
+      items = ["GET", "POST", "OPTIONS"]
+    }
+
+    access_control_allow_origins {
+      items = ["*"]   # or specific origins
+    }
+
+    access_control_expose_headers {
+      items = ["*"]
+    }
+
+    origin_override = true //means the headers defined here will override any headers from the origin (ALB)
   }
 }
