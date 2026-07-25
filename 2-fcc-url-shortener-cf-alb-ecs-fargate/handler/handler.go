@@ -43,14 +43,25 @@ func (h *Handler) ShortenerHandler(w http.ResponseWriter, r *http.Request) {
 	longUrl := r.FormValue("url") //this returns the first value for the named component of the query. If there are no values, it returns the empty string. It is equivalent to r.Form.Get("url") but more convenient if you only want the first value.
 
 
-
+	u, err := url.ParseRequestURI(longUrl)
 	// url.ParseRequestURI(longUrl) -> this function parses a raw URL string into a URL structure. It checks if the provided string is a valid absolute URL that can be routed over a network. If the URL is invalid, it returns an error.
-	if _, err := url.ParseRequestURI(longUrl); err != nil {
+	if  err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"error": "invalid url"})
 		return
 	}	
 
+	if u.Scheme != "http" && u.Scheme != "https" { //this checks if the parsed URL has a scheme (like http or https). If the scheme is empty, it means the URL is not absolute, and the handler responds with an error message indicating that the URL is invalid.
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid url"})
+		return
+	}
+
+	if !strings.Contains(u.Host, ".") { //this checks if the parsed URL has a valid host (domain). If the host is empty or does not contain a dot (.), it means the URL is not absolute, and the handler responds with an error message indicating that the URL is invalid.
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid url"})
+		return
+	}
 
 	shortUrl := keygen.GenerateShortUrl(6)
 	if err := h.Store.Save(r.Context(), shortUrl, longUrl); err != nil {
