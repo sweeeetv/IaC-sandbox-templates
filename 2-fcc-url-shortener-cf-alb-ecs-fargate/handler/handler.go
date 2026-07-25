@@ -27,25 +27,40 @@ type Req struct {
 
 
 func (h *Handler) ShortenerHandler(w http.ResponseWriter, r *http.Request) {
-	var req Req
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	// var req Req
+	// if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	// 	http.Error(w, "invalid url", http.StatusBadRequest)
+	// 	return
+	// }
+	// if _, err := url.ParseRequestURI(req.URL); err != nil {
+	// 	http.Error(w, "invalid url", http.StatusBadRequest)
+	// 	return
+	// }
+	if err := r.ParseForm(); err != nil {
 		http.Error(w, "invalid url", http.StatusBadRequest)
 		return
 	}
-	if _, err := url.ParseRequestURI(req.URL); err != nil {
-		http.Error(w, "invalid url", http.StatusBadRequest)
+	longUrl := r.FormValue("url") //this returns the first value for the named component of the query. If there are no values, it returns the empty string. It is equivalent to r.Form.Get("url") but more convenient if you only want the first value.
+
+
+
+	// url.ParseRequestURI(longUrl) -> this function parses a raw URL string into a URL structure. It checks if the provided string is a valid absolute URL that can be routed over a network. If the URL is invalid, it returns an error.
+	if _, err := url.ParseRequestURI(longUrl); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid url"})
 		return
-	}
+	}	
+
 
 	shortUrl := keygen.GenerateShortUrl(6)
-	if err := h.Store.Save(r.Context(), shortUrl, req.URL); err != nil {
+	if err := h.Store.Save(r.Context(), shortUrl, longUrl); err != nil {
 		log.Printf("failed to save url: %v", err) // fail loudly if this fails
 		http.Error(w, "!failed to save url", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"original_url": req.URL, "short_url": shortUrl})
+	json.NewEncoder(w).Encode(map[string]string{"original_url": longUrl, "short_url": shortUrl})
 }
 
 func (h *Handler) RedirectHandler(w http.ResponseWriter, r *http.Request) {
