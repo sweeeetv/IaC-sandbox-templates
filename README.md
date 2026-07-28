@@ -1,6 +1,6 @@
 # P2 CloudFront, ALB, Fargate, Elasticache, DynamoDB
 ### What it does:
-basically points a long url to a short combination of 6 random characters.
+Points a long url to a short combination of 6 random characters, and save these to a database so clients can redirect back to the long url with the short code. 
 ### Stacks:
 Language: Go
 IaC: Terraform
@@ -9,8 +9,8 @@ Infra: AWS
 - high-read, low-write workload — product pages, content APIs, anything where the same data is read far more than it changes.
 ### More Infos:
 - 2 TTLS: 
-- - CF (Go app's response headers, shorter) 
-- - Redis (Go code, longer)
+    - CF (Go app's response headers, shorter) 
+    - Redis (Go code, longer)
 - No Cache at CF.
 - TF files:
 ```
